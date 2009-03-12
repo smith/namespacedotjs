@@ -237,6 +237,20 @@ var Namespace = (function() {
 		}
 	};
 	
+    /**
+     * Add an identifier to the list of included scripts without actually loading it.
+     *
+     * @public
+     * @param   String      identifier The namespace string
+     */
+    _namespace.provide = function(identifier) {
+        if (!identifier in _includedIdentifiers) {
+            _includedItentifiers[identifier] = true;
+            return true;
+        }
+        return false;
+    };
+
 	/**
 	 * Imports properties from the specified namespace to the global space (ie. under window)
 	 *
@@ -397,6 +411,12 @@ var Namespace = (function() {
 			var callback = arguments[0] || false;
 			return _namespace.include(this.valueOf(), callback);
 		}
+		/**
+		 * @see Namespace.provide()
+		 */
+		String.prototype.provide = function() {
+			return _namespace.provide(this.valueOf());
+        };
 		/**
 		 * @see Namespace.use()
 		 */
