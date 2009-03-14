@@ -9,7 +9,7 @@ License:
 	MIT-style license.
 	
 Version:
-	1.0
+	1.1
 */
 var Namespace = (function() {
 
@@ -237,20 +237,6 @@ var Namespace = (function() {
 		}
 	};
 	
-    /**
-     * Add an identifier to the list of included scripts without actually loading it.
-     *
-     * @public
-     * @param   String      identifier The namespace string
-     */
-    _namespace.provide = function(identifier) {
-        if (!identifier in _includedIdentifiers) {
-            _includedItentifiers[identifier] = true;
-            return true;
-        }
-        return false;
-    };
-
 	/**
 	 * Imports properties from the specified namespace to the global space (ie. under window)
 	 *
@@ -364,6 +350,24 @@ var Namespace = (function() {
 	};
 	
 	/**
+	 * Registers a namespace so it won't be included
+	 *
+	 * Idea and code submitted by Nathan Smith (http://github.com/smith)
+	 *
+	 * @param	String|Array	identifier
+	 */
+	_namespace.provide = function(identifier) {
+		var identifiers = _toArray(identifier);
+		
+		for (var i = 0; i < identifiers.length; i++) {
+			if (!(identifier in _includedIdentifiers)) {
+				_dispatchEvent('provide', { 'identifier': identifier });
+				_includedIdentifiers[identifier] = true;
+			}
+		}
+	};
+	
+	/**
 	 * Registers a function to be called when the specified event is dispatched
 	 *
 	 * @param	String		eventName
@@ -412,12 +416,6 @@ var Namespace = (function() {
 			return _namespace.include(this.valueOf(), callback);
 		}
 		/**
-		 * @see Namespace.provide()
-		 */
-		String.prototype.provide = function() {
-			return _namespace.provide(this.valueOf());
-        };
-		/**
 		 * @see Namespace.use()
 		 */
 		String.prototype.use = function() {
@@ -431,11 +429,24 @@ var Namespace = (function() {
 			return _namespace.from(this.valueOf());
 		}
 		/**
+		 * @see Namespace.provide()
+		 * Idea and code submitted by Nathan Smith (http://github.com/smith)
+		 */
+		String.prototype.provide = function() {
+			return _namespace.provide(this.valueOf());
+		}
+		/**
 		 * @see Namespace.use()
 		 */
 		Array.prototype.use = function() {
 			var callback = arguments[0] || false;
 			return _namespace.use(this, callback);
+		}
+		/**
+		 * @see Namespace.provide()
+		 */
+		Array.prototype.provide = function() {
+			return _namespace.provide(this);
 		}
 	};
 
