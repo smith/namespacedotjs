@@ -1,13 +1,17 @@
-/*global window, document, console, Test, Namespace, a */
+/*global window, document, Test, Namespace, a */
 
 var t = new Test.Unit.Runner({
     setup : function () {
-
+        Namespace.separator = ".";
+        Namespace.baseUri = "./";
     },
 
     teardown : function () {
         // Delete any global objects that were created
-        delete window.a;
+        // IE has problems here
+        try {
+            delete window.a;
+        } catch (e) { window.a = undefined; }
 
         // Remove script tags other than Namespace.js, namespace_test.js 
         // and unittest.js
@@ -53,7 +57,9 @@ var t = new Test.Unit.Runner({
         this.assert(Namespace.exist("a.b"));
         this.assert(Namespace.exist("a.b.c"));
 
-        delete window.a;
+        try {
+            delete window.a;
+        } catch (e) { window.a = undefined; }
 
         this.assert(!Namespace.exist("a"));
     },
@@ -74,7 +80,11 @@ var t = new Test.Unit.Runner({
     },
 
     testInclude : function () {
+        this.assert(typeof Namespace.include === "function");
 
+        Namespace.include("fixtures/a");
+
+        this.assert(typeof a === "object");
     },
 
     testUse : function () {
