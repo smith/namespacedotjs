@@ -74,7 +74,14 @@ var Namespace = (function() {
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
 		script.text = data;
-		document.body.appendChild(script);
+
+        try { // Attempt body insertion
+		    document.body.appendChild(script);
+        } catch (e) { // Fall back on eval
+            if (typeof window.execScript === "function") {
+                window.execScript(data); 
+            } else { window.eval(data); }
+        }
 	};
 	
 	/**
