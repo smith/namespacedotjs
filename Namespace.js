@@ -11,6 +11,10 @@ License:
 Version:
 	1.1
 */
+
+/*jslint evil : true */
+/*global Namespace, XMLHttpRequest, ActiveXObject, window, document */
+
 var Namespace = (function() {
 
 	var _listeners = {};
@@ -27,7 +31,7 @@ var Namespace = (function() {
 		if (typeof(obj) == 'object' && obj.sort) {
 			return obj;
 		}
-		return new Array(obj);
+		return Array(obj);
 	};
 	
 	/**
@@ -37,12 +41,12 @@ var Namespace = (function() {
 	 */
 	var _createXmlHttpRequest = function() {
 		var xhr;
-		try { xhr = new XMLHttpRequest() } catch(e) {
-			try { xhr = new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {
-				try { xhr = new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {
-					try { xhr = new ActiveXObject("Msxml2.XMLHTTP") } catch(e) {
-						try { xhr = new ActiveXObject("Microsoft.XMLHTTP") } catch(e) {
-							throw new Error( "This browser does not support XMLHttpRequest." )
+        try { xhr = new XMLHttpRequest(); } catch(e) {
+            try { xhr = new ActiveXObject("Msxml2.XMLHTTP.6.0"); } catch(e2) {
+                try { xhr = new ActiveXObject("Msxml2.XMLHTTP.3.0"); } catch(e3) {
+                    try { xhr = new ActiveXObject("Msxml2.XMLHTTP"); } catch(e4) {
+                        try { xhr = new ActiveXObject("Microsoft.XMLHTTP"); } catch(e5) {
+                            throw new Error( "This browser does not support XMLHttpRequest." );
 						}
 					}
 				}
@@ -62,7 +66,7 @@ var Namespace = (function() {
 		return (status >= 200 && status < 300) || 	// Boolean
 				status == 304 || 						// allow any 2XX response code
 				status == 1223 || 						// get it out of the cache
-				(!status && (location.protocol == "file:" || location.protocol == "chrome:") ); // Internet Explorer mangled the status code
+				(!status && (window.location.protocol == "file:" || window.location.protocol == "chrome:") ); // Internet Explorer mangled the status code
 	};
 	
 	/**
@@ -80,7 +84,7 @@ var Namespace = (function() {
         } catch (e) { // Fall back on eval
             if (typeof window.execScript === "function") {
                 window.execScript(data); 
-            } else { window.eval(data); }
+            } else { window['eval'](data); }
         }
 	};
 	
@@ -91,7 +95,7 @@ var Namespace = (function() {
 	 * @param	Object	properties
 	 */
 	var _dispatchEvent = function(eventName, properties) {
-		if (!_listeners[eventName]) return;
+		if (!_listeners[eventName]) { return; }
 		properties.event = eventName;
 		for (var i = 0; i < _listeners[eventName].length; i++) {
 			_listeners[eventName][i](properties);
@@ -110,7 +114,7 @@ var Namespace = (function() {
 		var klasses = arguments[1] || false;
 		var ns = window;
 		
-		if (identifier != '') {
+		if (identifier !== '') {
 			var parts = identifier.split(Namespace.separator);
 			for (var i = 0; i < parts.length; i++) {
 				if (!ns[parts[i]]) {
@@ -122,7 +126,9 @@ var Namespace = (function() {
 		
 		if (klasses) {
 			for (var klass in klasses) {
-				ns[klass] = klasses[klass];
+                if (klasses.hasOwnProperty(klass)) {
+				    ns[klass] = klasses[klass];
+                }
 			}
 		}
 		
@@ -138,7 +144,7 @@ var Namespace = (function() {
 	 * @return	Boolean
 	 */
 	_namespace.exist = function(identifier) {
-		if (identifier == '') return true;
+		if (identifier === '') { return true; }
 		
 		var parts = identifier.split(Namespace.separator);
 		var ns = window;
@@ -172,10 +178,10 @@ var Namespace = (function() {
 	 * @param	Function	errorCallback		Callback to be called when an error occurs
 	 * @return	Boolean							Success of failure when loading synchronously
 	 */
-	_loadScript = function(identifier) {
-		var successCallback = arguments[1] || false;
-		var errorCallback = arguments[2] || false;
-		var async = successCallback != false;
+	var _loadScript = function(identifier) {
+		var successCallback = arguments[1];
+		var errorCallback = arguments[2];
+		var async = typeof successCallback === "function";
 		var uri = _namespace.mapIdentifierToUri(identifier);
 		var event = { 'identifier': identifier, 'uri': uri, 'async': async, 'callback': successCallback };
 		
@@ -193,7 +199,9 @@ var Namespace = (function() {
 					}
 					event.status = xhr.status;
 					_dispatchEvent('includeError', event);
-					errorCallback && errorCallback();
+                    if (typeof errorCallback === "function") {
+                        errorCallback();
+                    }
 				}
 			};
 		}
@@ -226,7 +234,7 @@ var Namespace = (function() {
 		
 		// checks if the identifier is not already included
 		if (_includedIdentifiers[identifier]) {
-			successCallback && successCallback();
+            if (typeof successCallback === "function") { successCallback(); }
 			return true;
 		}
 		
@@ -263,18 +271,21 @@ var Namespace = (function() {
 		var callback 			= arguments[1] || false;
 		var autoInclude 		= arguments.length > 2 ? arguments[2] : Namespace.autoInclude;
 		var event				= { 'identifier': identifier };
+        var parts, target, ns;
 		
 		for (var i = 0; i < identifiers.length; i++) {
 			identifier = identifiers[i];
 		
-			var parts = identifier.split(Namespace.separator);
-			var target = parts.pop();
-			var ns = _namespace(parts.join(Namespace.separator));
+			parts = identifier.split(Namespace.separator);
+			target = parts.pop();
+			ns = _namespace(parts.join(Namespace.separator));
 		
 			if (target == '*') {
 				// imports all objects from the identifier, can't use include() in that case
 				for (var objectName in ns) {
-					window[objectName] = ns[objectName];
+                    if (ns.hasOwnProperty(objectName)) {
+					    window[objectName] = ns[objectName];
+                    }
 				}
 			} else {
 				// imports only one object
@@ -295,7 +306,9 @@ var Namespace = (function() {
 								} else {
 									// no more identifiers to unpack
 									_dispatchEvent('use', event);
-									callback && callback();
+                                    if (typeof callback === "function") { 
+                                        callback();
+                                    }
 								}
 							});
 							return;
@@ -311,7 +324,7 @@ var Namespace = (function() {
 		
 		// all identifiers have been unpacked
 		_dispatchEvent('use', event);
-		callback && callback();
+        if (typeof callback === "function") { callback(); }
 	};
 	
 	/**
@@ -381,7 +394,7 @@ var Namespace = (function() {
 	 * @param	Function	callback
 	 */
 	_namespace.addEventListener = function(eventName, callback) {
-		if (!_listeners[eventName]) _listeners[eventName] = [];
+		if (!_listeners[eventName]) { _listeners[eventName] = []; }
 		_listeners[eventName].push(callback);
 	};
 	
@@ -392,7 +405,7 @@ var Namespace = (function() {
 	 * @param	Function	callback
 	 */
 	_namespace.removeEventListener = function(eventName, callback) {
-		if (!_listeners[eventName]) return;
+		if (!_listeners[eventName]) { return; }
 		for (var i = 0; i < _listeners[eventName].length; i++) {
 			if (_listeners[eventName][i] == callback) {
 				delete _listeners[eventName][i];
@@ -421,40 +434,40 @@ var Namespace = (function() {
 		String.prototype.include = function() {
 			var callback = arguments[0] || false;
 			return _namespace.include(this.valueOf(), callback);
-		}
+        };
 		/**
 		 * @see Namespace.use()
 		 */
 		String.prototype.use = function() {
 			var callback = arguments[0] || false;
 			return _namespace.use(this.valueOf(), callback);
-		}
+        };
 		/**
 		 * @see Namespace.from()
 		 */
 		String.prototype.from = function() {
 			return _namespace.from(this.valueOf());
-		}
+        };
 		/**
 		 * @see Namespace.provide()
 		 * Idea and code submitted by Nathan Smith (http://github.com/smith)
 		 */
 		String.prototype.provide = function() {
 			return _namespace.provide(this.valueOf());
-		}
+        };
 		/**
 		 * @see Namespace.use()
 		 */
 		Array.prototype.use = function() {
 			var callback = arguments[0] || false;
 			return _namespace.use(this, callback);
-		}
+        };
 		/**
 		 * @see Namespace.provide()
 		 */
 		Array.prototype.provide = function() {
 			return _namespace.provide(this);
-		}
+        };
 	};
 
 	return _namespace;
