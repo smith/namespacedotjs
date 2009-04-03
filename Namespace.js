@@ -79,12 +79,14 @@ var Namespace = (function() {
 		script.type = 'text/javascript';
 		script.text = data;
 
-        try { // Attempt body insertion
-		    document.body.appendChild(script);
-        } catch (e) { // Fall back on eval
-            if (typeof window.execScript === "function") {
-                window.execScript(data); 
-            } else { window['eval'](data); }
+        if (typeof window.execScript === "object") { // According to IE
+            window.execScript(data); 
+        } else { 
+            try { // Attempt body insertion
+                document.body.appendChild(script);
+            } catch (e) { // Fall back on eval
+                window['eval'](data);
+            }
         }
 	};
 	
